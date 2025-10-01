@@ -2617,72 +2617,73 @@ def validate_hook_function(function_code: str) -> Dict[str, Any]:
     return dynamic_hook_ai.validate_hook_function(function_code=function_code)
 
 
-
-if __name__ == "__main__":
+def main():
     import argparse
-    
+    import os
+    import sys  # Assuming these are needed; move imports to top if possible for cleanliness
+
     parser = argparse.ArgumentParser(description="Stealth Browser MCP Server with 90 tools")
     parser.add_argument("--transport", choices=["stdio", "http"], default="stdio",
-                      help="Transport protocol to use")
+                        help="Transport protocol to use")
     parser.add_argument("--port", type=int, default=int(os.getenv("PORT", 8000)),
-                      help="Port for HTTP transport")
+                        help="Port for HTTP transport")
     parser.add_argument("--host", default="0.0.0.0",
-                      help="Host for HTTP transport")
-    
+                        help="Host for HTTP transport")
+
     parser.add_argument("--disable-browser-management", action="store_true",
-                      help="Disable browser management tools (spawn, navigate, close, etc.)")
+                        help="Disable browser management tools (spawn, navigate, close, etc.)")
     parser.add_argument("--disable-element-interaction", action="store_true",
-                      help="Disable element interaction tools (click, type, scroll, etc.)")
+                        help="Disable element interaction tools (click, type, scroll, etc.)")
     parser.add_argument("--disable-element-extraction", action="store_true",
-                      help="Disable element extraction tools (styles, structure, events, etc.)")
+                        help="Disable element extraction tools (styles, structure, events, etc.)")
     parser.add_argument("--disable-file-extraction", action="store_true",
-                      help="Disable file-based extraction tools")
+                        help="Disable file-based extraction tools")
     parser.add_argument("--disable-network-debugging", action="store_true",
-                      help="Disable network debugging and interception tools")
+                        help="Disable network debugging and interception tools")
     parser.add_argument("--disable-cdp-functions", action="store_true",
-                      help="Disable CDP function execution tools")
+                        help="Disable CDP function execution tools")
     parser.add_argument("--disable-progressive-cloning", action="store_true",
-                      help="Disable progressive element cloning tools")
+                        help="Disable progressive element cloning tools")
     parser.add_argument("--disable-cookies-storage", action="store_true",
-                      help="Disable cookie and storage management tools")
+                        help="Disable cookie and storage management tools")
     parser.add_argument("--disable-tabs", action="store_true",
-                      help="Disable tab management tools")
+                        help="Disable tab management tools")
     parser.add_argument("--disable-debugging", action="store_true",
-                      help="Disable debug and system tools")
+                        help="Disable debug and system tools")
     parser.add_argument("--disable-dynamic-hooks", action="store_true",
-                      help="Disable dynamic network hook system")
-    
+                        help="Disable dynamic network hook system")
+
     parser.add_argument("--minimal", action="store_true",
-                      help="Enable only core browser management and element interaction (disable everything else)")
+                        help="Enable only core browser management and element interaction (disable everything else)")
     parser.add_argument("--list-sections", action="store_true",
-                      help="List all available tool sections and exit")
-    
+                        help="List all available tool sections and exit")
+
     args = parser.parse_args()
-    
+
     if args.list_sections:
         print("Available tool sections:")
-        print("  browser-management: Core browser operations (11 tools)")
-        print("  element-interaction: Page interaction and element manipulation (8 tools)")
-        print("  element-extraction: Element cloning and extraction (10 tools)")
-        print("  file-extraction: File-based extraction tools (9 tools)")
-        print("  network-debugging: Network monitoring and interception (10 tools)")
-        print("  cdp-functions: Chrome DevTools Protocol function execution (15 tools)")
-        print("  progressive-cloning: Advanced element cloning system (10 tools)")
-        print("  cookies-storage: Cookie and storage management (3 tools)")
-        print("  tabs: Tab management (5 tools)")
-        print("  debugging: Debug and system tools (6 tools)")
-        print("  dynamic-hooks: AI-powered network hook system (12 tools)")
+        print(" browser-management: Core browser operations (11 tools)")
+        print(" element-interaction: Page interaction and element manipulation (8 tools)")
+        print(" element-extraction: Element cloning and extraction (10 tools)")
+        print(" file-extraction: File-based extraction tools (9 tools)")
+        print(" network-debugging: Network monitoring and interception (10 tools)")
+        print(" cdp-functions: Chrome DevTools Protocol function execution (15 tools)")
+        print(" progressive-cloning: Advanced element cloning system (10 tools)")
+        print(" cookies-storage: Cookie and storage management (3 tools)")
+        print(" tabs: Tab management (5 tools)")
+        print(" debugging: Debug and system tools (6 tools)")
+        print(" dynamic-hooks: AI-powered network hook system (12 tools)")
         print("\nUse --disable-<section-name> to disable specific sections")
         print("Use --minimal to enable only core functionality")
         sys.exit(0)
-    
+
     if args.minimal:
         DISABLED_SECTIONS.update([
             "element-extraction", "file-extraction", "network-debugging",
             "cdp-functions", "progressive-cloning", "cookies-storage",
             "tabs", "debugging", "dynamic-hooks"
         ])
-    
+
     if args.disable_browser_management:
         DISABLED_SECTIONS.add("browser-management")
     if args.disable_element_interaction:
@@ -2705,11 +2706,15 @@ if __name__ == "__main__":
         DISABLED_SECTIONS.add("debugging")
     if args.disable_dynamic_hooks:
         DISABLED_SECTIONS.add("dynamic-hooks")
-    
+
     if DISABLED_SECTIONS:
         print(f"Disabled tool sections: {', '.join(sorted(DISABLED_SECTIONS))}")
-    
+
     if args.transport == "http":
         mcp.run(transport="http", host=args.host, port=args.port)
     else:
         mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()

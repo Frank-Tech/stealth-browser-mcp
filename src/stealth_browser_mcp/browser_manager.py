@@ -4,6 +4,7 @@ import asyncio
 import uuid
 from datetime import datetime, timedelta
 from typing import Dict, Optional, List
+from urllib.parse import urlparse
 
 import nodriver as uc
 from nodriver import Browser, Tab
@@ -25,13 +26,7 @@ class BrowserManager:
 
     async def spawn_browser(self, options: BrowserOptions) -> BrowserInstance:
         """
-        Spawn a new browser instance with given options.
-
-        Args:
-            options (BrowserOptions): Options for browser configuration.
-
-        Returns:
-            BrowserInstance: The spawned browser instance.
+        Spawn a new browser instance with given options, including proxy support.
         """
         instance_id = str(uuid.uuid4())
 
@@ -39,7 +34,7 @@ class BrowserManager:
             instance_id=instance_id,
             headless=options.headless,
             user_agent=options.user_agent,
-            viewport={"width": options.viewport_width, "height": options.viewport_height}
+            viewport={"width": options.viewport_width, "height": options.viewport_height},
         )
 
         try:
@@ -50,10 +45,35 @@ class BrowserManager:
                 f"Platform info: {platform_info['system']} | Root: {platform_info['is_root']} | Container: {platform_info['is_container']} | Sandbox: {options.sandbox}"
             )
 
+            # NEW: Parse proxy and build args
+            args = []  # List for Chrome args
+            if options.proxy:
+                parsed = urlparse(options.proxy)
+                if not parsed.scheme or not parsed.hostname or parsed.port is None:
+                    raise ValueError(f"Invalid proxy URL: {options.proxy} (missing scheme/host/port)")
+
+                proxy_scheme = parsed.scheme
+                proxy_host = parsed.hostname
+                proxy_port = parsed.port
+                proxy_user = parsed.username
+                proxy_pass = parsed.password
+
+                proxy_url = f"{proxy_scheme}://{proxy_host}:{proxy_port}"
+                args.append(f"--proxy-server={proxy_url}")
+                debug_logger.log_info("browser_manager", "spawn_browser", f"Proxy enabled: {proxy_url}")
+
+                # NEW: Handle auth if provided
+                if proxy_user and proxy_pass:
+                    debug_logger.log_info("browser_manager", "spawn_browser",
+                                          "Authenticated proxy detected; setting up CDP handlers")
+                    # Call after browser/tab creation (below)
+
+            # UPDATED: Pass args to config
             config = uc.Config(
                 headless=options.headless,
                 user_data_dir=options.user_data_dir,
-                sandbox=options.sandbox
+                sandbox=options.sandbox,
+                args=args  # NEW: Include proxy args here
             )
 
             browser = await uc.start(config=config)
@@ -74,6 +94,10 @@ class BrowserManager:
                 await tab.send(uc.cdp.network.set_extra_http_headers(
                     headers=options.extra_headers
                 ))
+
+            # NEW: Set up proxy auth handlers if needed (must be after tab creation)
+            if options.proxy and parsed.username and parsed.password:
+                await self._setup_proxy_auth(tab, parsed.username, parsed.password)
 
             await tab.set_window_size(
                 left=0,
@@ -101,7 +125,9 @@ class BrowserManager:
                 'state': instance.state.value,
                 'created_at': instance.created_at.isoformat(),
                 'current_url': getattr(tab, 'url', ''),
-                'title': 'Browser Instance'
+                'title': 'Browser Instance',
+                # NEW: Persist proxy
+                'proxy': options.proxy
             })
 
         except Exception as e:
@@ -109,6 +135,45 @@ class BrowserManager:
             raise Exception(f"Failed to spawn browser: {str(e)}")
 
         return instance
+
+    async def _setup_proxy_auth(self, tab: Tab, username: str, password: str):
+        """Set up CDP fetch handlers for proxy authentication challenges."""
+        try:
+            # Handler for auth challenges
+            async def auth_required_handler(event: uc.cdp.fetch.AuthRequired):
+                # Respond with credentials asynchronously to avoid blocking
+                import asyncio
+                asyncio.create_task(
+                    tab.send(
+                        uc.cdp.fetch.continue_with_auth(
+                            request_id=event.request_id,
+                            auth_challenge_response=uc.cdp.fetch.AuthChallengeResponse(
+                                response="ProvideCredentials",
+                                username=username,
+                                password=password,
+                            ),
+                        )
+                    )
+                )
+
+            # Handler for paused requests (continue them)
+            async def request_paused_handler(event: uc.cdp.fetch.RequestPaused):
+                import asyncio
+                asyncio.create_task(
+                    tab.send(uc.cdp.fetch.continue_request(request_id=event.request_id))
+                )
+
+            # Add event handlers BEFORE enabling fetch
+            tab.add_handler(uc.cdp.fetch.AuthRequired, auth_required_handler)
+            tab.add_handler(uc.cdp.fetch.RequestPaused, request_paused_handler)
+
+            # Enable fetch domain with auth support
+            await tab.send(uc.cdp.fetch.enable(handle_auth_requests=True))
+
+            debug_logger.log_info("browser_manager", "_setup_proxy_auth", "Proxy auth handlers enabled")
+        except Exception as e:
+            debug_logger.log_error("browser_manager", "_setup_proxy_auth", f"Failed to set up proxy auth: {e}")
+            raise
 
     async def _setup_dynamic_hooks(self, tab: Tab, instance_id: str):
         """Setup dynamic hook system for browser instance."""

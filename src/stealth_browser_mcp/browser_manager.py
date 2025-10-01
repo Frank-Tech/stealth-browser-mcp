@@ -2,18 +2,18 @@
 
 import asyncio
 import uuid
-from typing import Dict, Optional, List
 from datetime import datetime, timedelta
+from typing import Dict, Optional, List
 
 import nodriver as uc
 from nodriver import Browser, Tab
 
-from debug_logger import debug_logger
-from models import BrowserInstance, BrowserState, BrowserOptions, PageState
-from persistent_storage import persistent_storage
-from dynamic_hook_system import dynamic_hook_system
-from platform_utils import get_platform_info
-from process_cleanup import process_cleanup
+from stealth_browser_mcp.debug_logger import debug_logger
+from stealth_browser_mcp.dynamic_hook_system import dynamic_hook_system
+from stealth_browser_mcp.models import BrowserInstance, BrowserState, BrowserOptions, PageState
+from stealth_browser_mcp.persistent_storage import persistent_storage
+from stealth_browser_mcp.platform_utils import get_platform_info
+from stealth_browser_mcp.process_cleanup import process_cleanup
 
 
 class BrowserManager:
@@ -45,11 +45,11 @@ class BrowserManager:
         try:
             platform_info = get_platform_info()
             debug_logger.log_info(
-                "browser_manager", 
-                "spawn_browser", 
+                "browser_manager",
+                "spawn_browser",
                 f"Platform info: {platform_info['system']} | Root: {platform_info['is_root']} | Container: {platform_info['is_container']} | Sandbox: {options.sandbox}"
             )
-            
+
             config = uc.Config(
                 headless=options.headless,
                 user_data_dir=options.user_data_dir,
@@ -62,8 +62,8 @@ class BrowserManager:
             if hasattr(browser, '_process') and browser._process:
                 process_cleanup.track_browser_process(instance_id, browser._process)
             else:
-                debug_logger.log_warning("browser_manager", "spawn_browser", 
-                                       f"Browser {instance_id} has no process to track")
+                debug_logger.log_warning("browser_manager", "spawn_browser",
+                                         f"Browser {instance_id} has no process to track")
 
             if options.user_agent:
                 await tab.send(uc.cdp.emulation.set_user_agent_override(
@@ -77,7 +77,7 @@ class BrowserManager:
 
             await tab.set_window_size(
                 left=0,
-                top=0, 
+                top=0,
                 width=options.viewport_width,
                 height=options.viewport_height
             )
@@ -109,18 +109,20 @@ class BrowserManager:
             raise Exception(f"Failed to spawn browser: {str(e)}")
 
         return instance
-    
+
     async def _setup_dynamic_hooks(self, tab: Tab, instance_id: str):
         """Setup dynamic hook system for browser instance."""
         try:
             dynamic_hook_system.add_instance(instance_id)
-            
+
             await dynamic_hook_system.setup_interception(tab, instance_id)
-            
-            debug_logger.log_info("browser_manager", "_setup_dynamic_hooks", f"Dynamic hook system setup complete for instance {instance_id}")
-            
+
+            debug_logger.log_info("browser_manager", "_setup_dynamic_hooks",
+                                  f"Dynamic hook system setup complete for instance {instance_id}")
+
         except Exception as e:
-            debug_logger.log_error("browser_manager", "_setup_dynamic_hooks", f"Failed to setup dynamic hooks for {instance_id}: {e}")
+            debug_logger.log_error("browser_manager", "_setup_dynamic_hooks",
+                                   f"Failed to setup dynamic hooks for {instance_id}: {e}")
 
     async def get_instance(self, instance_id: str) -> Optional[dict]:
         """
@@ -156,7 +158,7 @@ class BrowserManager:
             bool: True if closed successfully, False otherwise.
         """
         import asyncio
-        
+
         async def _do_close():
             async with self._lock:
                 if instance_id not in self._instances:
@@ -180,15 +182,18 @@ class BrowserManager:
                     import asyncio
                     if hasattr(browser, 'connection') and browser.connection:
                         asyncio.get_event_loop().create_task(browser.connection.disconnect())
-                        debug_logger.log_info("browser_manager", "close_connection", "closed connection using get_event_loop().create_task()")
+                        debug_logger.log_info("browser_manager", "close_connection",
+                                              "closed connection using get_event_loop().create_task()")
                 except RuntimeError:
                     try:
                         import asyncio
                         if hasattr(browser, 'connection') and browser.connection:
                             await asyncio.wait_for(browser.connection.disconnect(), timeout=2.0)
-                            debug_logger.log_info("browser_manager", "close_connection", "closed connection with direct await and timeout")
+                            debug_logger.log_info("browser_manager", "close_connection",
+                                                  "closed connection with direct await and timeout")
                     except (asyncio.TimeoutError, Exception) as e:
-                        debug_logger.log_info("browser_manager", "close_connection", f"connection disconnect failed or timed out: {e}")
+                        debug_logger.log_info("browser_manager", "close_connection",
+                                              f"connection disconnect failed or timed out: {e}")
                         pass
                 except Exception as e:
                     debug_logger.log_info("browser_manager", "close_connection", f"connection disconnect failed: {e}")
@@ -204,8 +209,8 @@ class BrowserManager:
                 try:
                     process_cleanup.kill_browser_process(instance_id)
                 except Exception as e:
-                    debug_logger.log_warning("browser_manager", "close_instance", 
-                                           f"Process cleanup failed for {instance_id}: {e}")
+                    debug_logger.log_warning("browser_manager", "close_instance",
+                                             f"Process cleanup failed for {instance_id}: {e}")
 
                 try:
                     await browser.stop()
@@ -218,21 +223,25 @@ class BrowserManager:
                     for attempt in range(3):
                         try:
                             browser._process.terminate()
-                            debug_logger.log_info("browser_manager", "terminate_process", f"terminated browser with pid {browser._process.pid} successfully on attempt {attempt + 1}")
+                            debug_logger.log_info("browser_manager", "terminate_process",
+                                                  f"terminated browser with pid {browser._process.pid} successfully on attempt {attempt + 1}")
                             break
                         except Exception:
                             try:
                                 browser._process.kill()
-                                debug_logger.log_info("browser_manager", "kill_process", f"killed browser with pid {browser._process.pid} successfully on attempt {attempt + 1}")
+                                debug_logger.log_info("browser_manager", "kill_process",
+                                                      f"killed browser with pid {browser._process.pid} successfully on attempt {attempt + 1}")
                                 break
                             except Exception:
                                 try:
                                     if hasattr(browser, '_process_pid') and browser._process_pid:
                                         os.kill(browser._process_pid, 15)
-                                        debug_logger.log_info("browser_manager", "kill_process", f"killed browser with pid {browser._process_pid} using signal 15 successfully on attempt {attempt + 1}")
+                                        debug_logger.log_info("browser_manager", "kill_process",
+                                                              f"killed browser with pid {browser._process_pid} using signal 15 successfully on attempt {attempt + 1}")
                                         break
                                 except (PermissionError, ProcessLookupError) as e:
-                                    debug_logger.log_info("browser_manager", "kill_process", f"browser already stopped or no permission to kill: {e}")
+                                    debug_logger.log_info("browser_manager", "kill_process",
+                                                          f"browser already stopped or no permission to kill: {e}")
                                     break
                                 except Exception as e:
                                     if attempt == 2:
@@ -253,11 +262,12 @@ class BrowserManager:
                 persistent_storage.remove_instance(instance_id)
 
                 return True
-        
+
         try:
             return await asyncio.wait_for(_do_close(), timeout=5.0)
         except asyncio.TimeoutError:
-            debug_logger.log_info("browser_manager", "close_instance", f"Close timeout for {instance_id}, forcing cleanup")
+            debug_logger.log_info("browser_manager", "close_instance",
+                                  f"Close timeout for {instance_id}, forcing cleanup")
             try:
                 async with self._lock:
                     if instance_id in self._instances:

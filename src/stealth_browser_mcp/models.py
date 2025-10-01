@@ -1,9 +1,10 @@
 """Data models for browser MCP server."""
 
-from typing import Optional, List, Dict, Any
 from datetime import datetime
-from pydantic import BaseModel, Field
 from enum import Enum
+from typing import Optional, List, Dict, Any
+
+from pydantic import BaseModel, Field
 
 
 class BrowserState(str, Enum):
@@ -26,7 +27,7 @@ class BrowserInstance(BaseModel):
     headless: bool = Field(default=False)
     user_agent: Optional[str] = None
     viewport: Dict[str, int] = Field(default_factory=lambda: {"width": 1920, "height": 1080})
-    
+
     def update_activity(self):
         """Update last activity timestamp."""
         self.last_activity = datetime.now()
@@ -43,8 +44,8 @@ class NetworkRequest(BaseModel):
     post_data: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.now)
     resource_type: Optional[str] = None
-    
-    
+
+
 class NetworkResponse(BaseModel):
     """Represents a captured network response."""
     request_id: str = Field(description="Associated request ID")
@@ -153,11 +154,11 @@ class NetworkHook(BaseModel):
     action: HookAction = Field(description="What to do with matched requests")
     status: HookStatus = Field(default=HookStatus.ACTIVE)
     priority: int = Field(default=100, description="Hook priority (lower = higher priority)")
-    
+
     modifications: Dict[str, Any] = Field(default_factory=dict, description="Modifications to apply")
     redirect_url: Optional[str] = Field(default=None, description="URL to redirect to")
     custom_response: Optional[Dict[str, Any]] = Field(default=None, description="Custom response data")
-    
+
     created_at: datetime = Field(default_factory=datetime.now)
     last_triggered: Optional[datetime] = None
     trigger_count: int = Field(default=0, description="Number of times this hook was triggered")
@@ -173,11 +174,11 @@ class PendingRequest(BaseModel):
     post_data: Optional[str] = None
     resource_type: Optional[str] = None
     stage: HookStage = Field(description="Current interception stage")
-    
+
     matched_hooks: List[str] = Field(default_factory=list, description="IDs of hooks that matched")
     modifications: Dict[str, Any] = Field(default_factory=dict, description="Accumulated modifications")
     status: str = Field(default="pending", description="Processing status")
-    
+
     created_at: datetime = Field(default_factory=datetime.now)
     expires_at: Optional[datetime] = None
 
@@ -185,7 +186,7 @@ class PendingRequest(BaseModel):
 class RequestModification(BaseModel):
     """Represents modifications to apply to a request."""
     url: Optional[str] = None
-    method: Optional[str] = None  
+    method: Optional[str] = None
     headers: Optional[Dict[str, str]] = None
     post_data: Optional[str] = None
     intercept_response: Optional[bool] = None

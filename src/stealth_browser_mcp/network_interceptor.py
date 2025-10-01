@@ -2,13 +2,12 @@
 
 import asyncio
 import base64
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import nodriver as uc
 from nodriver import Tab
 
-from models import NetworkRequest, NetworkResponse
+from stealth_browser_mcp.models import NetworkRequest, NetworkResponse
 
 
 class NetworkInterceptor:
@@ -30,7 +29,7 @@ class NetworkInterceptor:
         """
         try:
             await tab.send(uc.cdp.network.enable())
-            
+
             if block_resources:
                 # Convert resource types to URL patterns for blocking
                 url_patterns = []
@@ -43,20 +42,21 @@ class NetworkInterceptor:
                         'script': ['*.js', '*.mjs'],
                         'media': ['*.mp4', '*.mp3', '*.wav', '*.avi', '*.webm']
                     }
-                    
+
                     if resource_type.lower() in resource_patterns:
                         url_patterns.extend(resource_patterns[resource_type.lower()])
-                        print(f"[DEBUG] Added URL patterns for {resource_type}: {resource_patterns[resource_type.lower()]}")
+                        print(
+                            f"[DEBUG] Added URL patterns for {resource_type}: {resource_patterns[resource_type.lower()]}")
                     else:
                         # Assume it's already a URL pattern
                         url_patterns.append(resource_type)
                         print(f"[DEBUG] Added custom URL pattern: {resource_type}")
-                
+
                 # Use network.set_blocked_ur_ls to block the URL patterns
                 if url_patterns:
                     await tab.send(uc.cdp.network.set_blocked_ur_ls(urls=url_patterns))
                     print(f"[DEBUG] Blocked {len(url_patterns)} URL patterns: {url_patterns}")
-            
+
             tab.add_handler(
                 uc.cdp.network.RequestWillBeSent,
                 lambda event: asyncio.create_task(self._on_request(event, instance_id)),
@@ -65,7 +65,7 @@ class NetworkInterceptor:
                 uc.cdp.network.ResponseReceived,
                 lambda event: asyncio.create_task(self._on_response(event, instance_id)),
             )
-            
+
             async with self._lock:
                 if instance_id not in self._instance_requests:
                     self._instance_requests[instance_id] = []
@@ -126,7 +126,6 @@ class NetworkInterceptor:
                 self._responses[request_id] = network_response
         except Exception:
             pass
-
 
     async def list_requests(self, instance_id: str, filter_type: Optional[str] = None) -> List[NetworkRequest]:
         """
@@ -311,12 +310,12 @@ class NetworkInterceptor:
             raise Exception(f"Failed to get cookies: {str(e)}")
 
     async def emulate_network_conditions(
-        self,
-        tab: Tab,
-        offline: bool = False,
-        latency: int = 0,
-        download_throughput: int = -1,
-        upload_throughput: int = -1,
+            self,
+            tab: Tab,
+            offline: bool = False,
+            latency: int = 0,
+            download_throughput: int = -1,
+            upload_throughput: int = -1,
     ):
         """
         Emulate network conditions.

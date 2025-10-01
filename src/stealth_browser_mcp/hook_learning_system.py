@@ -5,13 +5,13 @@ This system provides examples, documentation, and learning materials for AI
 to understand how to create effective hook functions.
 """
 
-from typing import Dict, List, Any
 import ast
+from typing import Dict, List, Any
 
 
 class HookLearningSystem:
     """System to help AI learn how to create hook functions."""
-    
+
     @staticmethod
     def get_request_object_documentation() -> Dict[str, Any]:
         """Get comprehensive documentation of the request object structure."""
@@ -26,7 +26,7 @@ class HookLearningSystem:
                         "example": "fetch-12345-abcde"
                     },
                     "instance_id": {
-                        "type": "str", 
+                        "type": "str",
                         "description": "Browser instance ID that made the request",
                         "example": "8e226b0c-3879-4d5e-96b3-db1805bfd4c4"
                     },
@@ -96,8 +96,8 @@ class HookLearningSystem:
                 }
             }
         }
-    
-    @staticmethod 
+
+    @staticmethod
     def get_hook_examples() -> List[Dict[str, Any]]:
         """Get example hook functions for AI learning."""
         return [
@@ -170,7 +170,7 @@ def process_request(request):
                 "explanation": "This hook converts GET requests to POST, adds JSON content-type header, and includes original URL in body."
             },
             {
-                "name": "Custom Response Generator", 
+                "name": "Custom Response Generator",
                 "description": "Return custom JSON response for API endpoints",
                 "requirements": {
                     "url_pattern": "*/mock-api/*"
@@ -408,7 +408,7 @@ def process_request(request):
                 "explanation": "This response-stage hook replaces real API responses with fake data for testing environments."
             }
         ]
-    
+
     @staticmethod
     def get_requirements_documentation() -> Dict[str, Any]:
         """Get documentation on hook requirements/matching criteria."""
@@ -428,7 +428,7 @@ def process_request(request):
                         ]
                     },
                     "method": {
-                        "type": "str", 
+                        "type": "str",
                         "description": "HTTP method to match (GET, POST, PUT, DELETE, etc.)",
                         "examples": ["GET", "POST", "PUT", "DELETE"]
                     },
@@ -457,7 +457,7 @@ def process_request(request):
             },
             "best_practices": [
                 "Use specific URL patterns to avoid over-matching",
-                "Include method filters for POST/PUT hooks to avoid affecting GET requests", 
+                "Include method filters for POST/PUT hooks to avoid affecting GET requests",
                 "Use custom conditions for complex matching logic",
                 "Test hooks with console logging before deploying",
                 "Always return a HookAction object",
@@ -465,7 +465,7 @@ def process_request(request):
                 "Use priority (lower = higher priority) to control hook execution order"
             ]
         }
-    
+
     @staticmethod
     def get_common_patterns() -> List[Dict[str, Any]]:
         """Get common hook patterns and use cases."""
@@ -477,7 +477,7 @@ def process_request(request):
                 "use_case": "Block advertising and tracking requests"
             },
             {
-                "pattern": "API Proxy", 
+                "pattern": "API Proxy",
                 "requirements": {"url_pattern": "*api.old-site.com*"},
                 "action": "redirect",
                 "use_case": "Redirect API calls to new endpoints"
@@ -491,7 +491,7 @@ def process_request(request):
             {
                 "pattern": "Mock Server",
                 "requirements": {"url_pattern": "*mock/*"},
-                "action": "fulfill", 
+                "action": "fulfill",
                 "use_case": "Return custom responses for testing"
             },
             {
@@ -507,32 +507,32 @@ def process_request(request):
                 "use_case": "Add security headers to modification requests"
             }
         ]
-    
+
     @staticmethod
     def validate_hook_function(function_code: str) -> Dict[str, Any]:
         """Validate hook function code for common issues."""
         issues = []
         warnings = []
-        
+
         try:
             # Parse the function code
             parsed = ast.parse(function_code)
-            
+
             # Check for required function
             has_process_request = False
             for node in ast.walk(parsed):
                 if isinstance(node, ast.FunctionDef) and node.name == "process_request":
                     has_process_request = True
-                    
+
                     # Check function parameters
                     if len(node.args.args) != 1:
                         issues.append("process_request function must take exactly one parameter (request)")
                     elif node.args.args[0].arg != "request":
                         warnings.append("First parameter should be named 'request' for clarity")
-            
+
             if not has_process_request:
                 issues.append("Function must define 'process_request(request)' function")
-            
+
             # Check for dangerous operations
             dangerous_nodes = []
             for node in ast.walk(parsed):
@@ -541,13 +541,13 @@ def process_request(request):
                 elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
                     if node.func.id in ['eval', 'exec', 'open', 'input']:
                         issues.append(f"Dangerous function call: {node.func.id}")
-            
+
             return {
                 "valid": len(issues) == 0,
                 "issues": issues,
                 "warnings": warnings
             }
-            
+
         except SyntaxError as e:
             return {
                 "valid": False,
@@ -556,7 +556,7 @@ def process_request(request):
             }
         except Exception as e:
             return {
-                "valid": False, 
+                "valid": False,
                 "issues": [f"Parse error: {e}"],
                 "warnings": []
             }

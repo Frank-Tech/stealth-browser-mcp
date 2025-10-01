@@ -1,22 +1,13 @@
-import asyncio
 import json
-import os
-import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
-try:
-    from .debug_logger import debug_logger
-except ImportError:
-    from debug_logger import debug_logger
+from stealth_browser_mcp.comprehensive_element_cloner import ComprehensiveElementCloner
+from stealth_browser_mcp.debug_logger import debug_logger
+from stealth_browser_mcp.element_cloner import element_cloner
 
-project_root = Path(__file__).parent.parent
-sys.path.append(str(project_root))
-
-from comprehensive_element_cloner import ComprehensiveElementCloner
-from element_cloner import element_cloner
 
 class FileBasedElementCloner:
     """Element cloner that saves data to files and returns file paths."""
@@ -31,7 +22,7 @@ class FileBasedElementCloner:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         self.comprehensive_cloner = ComprehensiveElementCloner()
-    
+
     def _safe_process_framework_handlers(self, framework_handlers):
         """Safely process framework handlers that might be dict or list."""
         if isinstance(framework_handlers, dict):
@@ -57,13 +48,13 @@ class FileBasedElementCloner:
         return f"{prefix}_{timestamp}_{unique_id}.{extension}"
 
     async def extract_element_styles_to_file(
-        self,
-        tab,
-        selector: str,
-        include_computed: bool = True,
-        include_css_rules: bool = True,
-        include_pseudo: bool = True,
-        include_inheritance: bool = False
+            self,
+            tab,
+            selector: str,
+            include_computed: bool = True,
+            include_css_rules: bool = True,
+            include_pseudo: bool = True,
+            include_inheritance: bool = False
     ) -> Dict[str, Any]:
         """
         Extract element styles and save to file, returning file path.
@@ -81,8 +72,8 @@ class FileBasedElementCloner:
         """
         try:
             debug_logger.log_info("file_element_cloner", "extract_styles_to_file",
-                                f"Starting style extraction for selector: {selector}")
-            
+                                  f"Starting style extraction for selector: {selector}")
+
             # Extract styles using element_cloner
             style_data = await element_cloner.extract_element_styles(
                 tab,
@@ -92,11 +83,11 @@ class FileBasedElementCloner:
                 include_pseudo=include_pseudo,
                 include_inheritance=include_inheritance
             )
-            
+
             # Generate filename and save
             filename = self._generate_filename("styles")
             file_path = self._save_to_file(style_data, filename)
-            
+
             # Create summary
             summary = {
                 "file_path": str(file_path),
@@ -110,11 +101,11 @@ class FileBasedElementCloner:
                     "custom_properties_count": len(style_data.get('custom_properties', {}))
                 }
             }
-            
+
             debug_logger.log_info("file_element_cloner", "extract_styles_to_file",
-                                f"Styles saved to {file_path}")
+                                  f"Styles saved to {file_path}")
             return summary
-            
+
         except Exception as e:
             debug_logger.log_error("file_element_cloner", "extract_styles_to_file", e)
             return {"error": str(e)}
@@ -136,10 +127,10 @@ class FileBasedElementCloner:
         return str(file_path.absolute())
 
     async def extract_complete_element_to_file(
-        self,
-        tab,
-        selector: str,
-        include_children: bool = True
+            self,
+            tab,
+            selector: str,
+            include_children: bool = True
     ) -> Dict[str, Any]:
         """
         Extract complete element using working comprehensive cloner and save to file.
@@ -189,14 +180,14 @@ class FileBasedElementCloner:
             return {"error": str(e)}
 
     async def extract_element_structure_to_file(
-        self,
-        tab,
-        element=None,
-        selector: str = None,
-        include_children: bool = False,
-        include_attributes: bool = True,
-        include_data_attributes: bool = True,
-        max_depth: int = 3
+            self,
+            tab,
+            element=None,
+            selector: str = None,
+            include_children: bool = False,
+            include_attributes: bool = True,
+            include_data_attributes: bool = True,
+            max_depth: int = 3
     ) -> Dict[str, str]:
         """
         Extract structure and save to file, return file path.
@@ -250,14 +241,14 @@ class FileBasedElementCloner:
             return {"error": str(e)}
 
     async def extract_element_events_to_file(
-        self,
-        tab,
-        element=None,
-        selector: str = None,
-        include_inline: bool = True,
-        include_listeners: bool = True,
-        include_framework: bool = True,
-        analyze_handlers: bool = True
+            self,
+            tab,
+            element=None,
+            selector: str = None,
+            include_inline: bool = True,
+            include_listeners: bool = True,
+            include_framework: bool = True,
+            analyze_handlers: bool = True
     ) -> Dict[str, str]:
         """
         Extract events and save to file, return file path.
@@ -302,7 +293,8 @@ class FileBasedElementCloner:
                     "inline_handlers_count": len(event_data.get('inline_handlers', [])),
                     "event_listeners_count": len(event_data.get('event_listeners', [])),
                     "detected_frameworks": event_data.get('detected_frameworks', []),
-                    "framework_handlers": self._safe_process_framework_handlers(event_data.get('framework_handlers', {}))
+                    "framework_handlers": self._safe_process_framework_handlers(
+                        event_data.get('framework_handlers', {}))
                 }
             }
         except Exception as e:
@@ -310,14 +302,14 @@ class FileBasedElementCloner:
             return {"error": str(e)}
 
     async def extract_element_animations_to_file(
-        self,
-        tab,
-        element=None,
-        selector: str = None,
-        include_css_animations: bool = True,
-        include_transitions: bool = True,
-        include_transforms: bool = True,
-        analyze_keyframes: bool = True
+            self,
+            tab,
+            element=None,
+            selector: str = None,
+            include_css_animations: bool = True,
+            include_transitions: bool = True,
+            include_transforms: bool = True,
+            analyze_keyframes: bool = True
     ) -> Dict[str, str]:
         """
         Extract animations and save to file, return file path.
@@ -360,7 +352,8 @@ class FileBasedElementCloner:
                 "selector": selector,
                 "summary": {
                     "has_animations": animation_data.get('animations', {}).get('animation_name', 'none') != 'none',
-                    "has_transitions": animation_data.get('transitions', {}).get('transition_property', 'none') != 'none',
+                    "has_transitions": animation_data.get('transitions', {}).get('transition_property',
+                                                                                 'none') != 'none',
                     "has_transforms": animation_data.get('transforms', {}).get('transform', 'none') != 'none',
                     "keyframes_count": len(animation_data.get('keyframes', []))
                 }
@@ -370,14 +363,14 @@ class FileBasedElementCloner:
             return {"error": str(e)}
 
     async def extract_element_assets_to_file(
-        self,
-        tab,
-        element=None,
-        selector: str = None,
-        include_images: bool = True,
-        include_backgrounds: bool = True,
-        include_fonts: bool = True,
-        fetch_external: bool = False
+            self,
+            tab,
+            element=None,
+            selector: str = None,
+            include_images: bool = True,
+            include_backgrounds: bool = True,
+            include_fonts: bool = True,
+            fetch_external: bool = False
     ) -> Dict[str, str]:
         """
         Extract assets and save to file, return file path.
@@ -433,14 +426,14 @@ class FileBasedElementCloner:
             return {"error": str(e)}
 
     async def extract_related_files_to_file(
-        self,
-        tab,
-        element=None,
-        selector: str = None,
-        analyze_css: bool = True,
-        analyze_js: bool = True,
-        follow_imports: bool = False,
-        max_depth: int = 2
+            self,
+            tab,
+            element=None,
+            selector: str = None,
+            analyze_css: bool = True,
+            analyze_js: bool = True,
+            follow_imports: bool = False,
+            max_depth: int = 2
     ) -> Dict[str, str]:
         """
         Extract related files and save to file, return file path.
@@ -492,11 +485,11 @@ class FileBasedElementCloner:
             return {"error": str(e)}
 
     async def clone_element_complete_to_file(
-        self,
-        tab,
-        element=None,
-        selector: str = None,
-        extraction_options: Dict[str, Any] = None
+            self,
+            tab,
+            element=None,
+            selector: str = None,
+            extraction_options: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """
         Master function that extracts all element data and saves to file.
@@ -629,5 +622,6 @@ class FileBasedElementCloner:
             except Exception as e:
                 debug_logger.log_warning("file_element_cloner", "cleanup", f"Error deleting {file_path}: {e}")
         return deleted_count
+
 
 file_based_element_cloner = FileBasedElementCloner()

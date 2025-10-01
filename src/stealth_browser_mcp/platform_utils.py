@@ -16,7 +16,7 @@ def is_running_as_root() -> bool:
         bool: True if running as root (Linux/macOS) or administrator (Windows)
     """
     system = platform.system().lower()
-    
+
     if system in ('linux', 'darwin'):  # Linux or macOS
         try:
             return os.getuid() == 0
@@ -44,7 +44,7 @@ def is_running_in_container() -> bool:
         os.environ.get('container') is not None,
         os.environ.get('KUBERNETES_SERVICE_HOST') is not None,
     ]
-    
+
     return any(container_indicators)
 
 
@@ -56,13 +56,13 @@ def get_required_sandbox_args() -> List[str]:
         List[str]: List of browser arguments needed for current environment
     """
     args = []
-    
+
     if is_running_as_root():
         args.extend([
             '--no-sandbox',
             '--disable-setuid-sandbox'
         ])
-    
+
     if is_running_in_container():
         args.extend([
             '--no-sandbox',
@@ -71,14 +71,14 @@ def get_required_sandbox_args() -> List[str]:
             '--disable-gpu',
             '--single-process',
         ])
-    
+
     seen = set()
     unique_args = []
     for arg in args:
         if arg not in seen:
             seen.add(arg)
             unique_args.append(arg)
-    
+
     return unique_args
 
 
@@ -94,13 +94,13 @@ def merge_browser_args(user_args: Optional[List[str]] = None) -> List[str]:
     """
     user_args = user_args or []
     required_args = get_required_sandbox_args()
-    
+
     combined_args = list(user_args)
-    
+
     for arg in required_args:
         if arg not in combined_args:
             combined_args.append(arg)
-    
+
     return combined_args
 
 
@@ -142,7 +142,7 @@ def check_chrome_executable() -> Optional[str]:
         Optional[str]: Path to Chrome executable or None if not found
     """
     system = platform.system().lower()
-    
+
     if system == 'windows':
         possible_paths = [
             r'C:\Program Files\Google\Chrome\Application\chrome.exe',
@@ -164,11 +164,11 @@ def check_chrome_executable() -> Optional[str]:
             '/snap/bin/chromium',
             '/usr/local/bin/chrome',
         ]
-    
+
     for path in possible_paths:
         if os.path.isfile(path) and os.access(path, os.X_OK):
             return path
-    
+
     chrome_names = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'chrome']
     for name in chrome_names:
         try:
@@ -177,7 +177,7 @@ def check_chrome_executable() -> Optional[str]:
                 return result.stdout.strip()
         except (subprocess.SubprocessError, FileNotFoundError):
             continue
-    
+
     return None
 
 
@@ -190,22 +190,22 @@ def validate_browser_environment() -> dict:
     """
     chrome_path = check_chrome_executable()
     platform_info = get_platform_info()
-    
+
     issues = []
     warnings = []
-    
+
     if not chrome_path:
         issues.append("Chrome/Chromium executable not found")
-    
+
     if platform_info['is_root']:
         warnings.append("Running as root/administrator - sandbox will be disabled")
-    
+
     if platform_info['is_container']:
         warnings.append("Running in container - additional arguments will be added")
-    
+
     if platform_info['system'] not in ['Windows', 'Linux', 'Darwin']:
         warnings.append(f"Untested platform: {platform_info['system']}")
-    
+
     return {
         'chrome_executable': chrome_path,
         'platform_info': platform_info,

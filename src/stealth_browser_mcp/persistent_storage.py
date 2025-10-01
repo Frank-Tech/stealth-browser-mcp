@@ -1,6 +1,7 @@
 import threading
 from typing import Any, Dict, Optional
 
+
 class InMemoryStorage:
     """Thread-safe in-memory storage for browser instance data."""
 
@@ -91,5 +92,6 @@ class InMemoryStorage:
         """
         with self._lock:
             self._data[key] = value
+
 
 persistent_storage = InMemoryStorage()

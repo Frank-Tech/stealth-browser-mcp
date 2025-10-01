@@ -15,15 +15,14 @@ Key features:
 - Child element extraction with depth tracking
 """
 
-import os
 import sys
-from typing import Dict, Any, Optional
 from pathlib import Path
+from typing import Dict, Any
 
 project_root = Path(__file__).parent
 sys.path.append(str(project_root))
 
-from debug_logger import debug_logger
+from stealth_browser_mcp.debug_logger import debug_logger
 
 
 class ComprehensiveElementCloner:
@@ -31,16 +30,16 @@ class ComprehensiveElementCloner:
     Comprehensive element cloner that extracts complete element data
     matching CopyIt-CDP v3 functionality using proper nodriver APIs.
     """
-    
+
     def __init__(self):
         """Initialize the comprehensive element cloner."""
         pass
-    
+
     async def extract_complete_element(
-        self,
-        tab,
-        selector: str,
-        include_children: bool = True
+            self,
+            tab,
+            selector: str,
+            include_children: bool = True
     ) -> Dict[str, Any]:
         """
         Extract complete element data matching CopyIt-CDP v3 functionality.
@@ -57,8 +56,9 @@ class ComprehensiveElementCloner:
         - Framework detection (React, Vue, Angular handlers)
         """
         try:
-            debug_logger.log_info("element_cloner", "extract_complete", f"Starting comprehensive extraction for {selector}")
-            
+            debug_logger.log_info("element_cloner", "extract_complete",
+                                  f"Starting comprehensive extraction for {selector}")
+
             js_code = f"""
             (async function() {{
                 async function extractSingleElement(element) {{
@@ -276,13 +276,13 @@ class ComprehensiveElementCloner:
                 return result;
             }})()
             """
-            
+
             debug_logger.log_info("element_cloner", "extract_complete", "Executing comprehensive JavaScript extraction")
-            
+
             result = await tab.evaluate(js_code, return_by_value=True, await_promise=True)
-            
+
             debug_logger.log_info("element_cloner", "extract_complete", f"Raw result type: {type(result)}")
-            
+
             if isinstance(result, dict):
                 extracted_data = result
             elif result is None:
@@ -294,9 +294,11 @@ class ComprehensiveElementCloner:
                     extracted_data = result.value
                 elif hasattr(result, 'deep_serialized_value') and result.deep_serialized_value is not None:
                     deep_val = result.deep_serialized_value.value
-                    debug_logger.log_info("element_cloner", "extract_complete", f"Deep serialized value type: {type(deep_val)}")
-                    debug_logger.log_info("element_cloner", "extract_complete", f"Deep serialized value sample: {str(deep_val)[:300]}")
-                    
+                    debug_logger.log_info("element_cloner", "extract_complete",
+                                          f"Deep serialized value type: {type(deep_val)}")
+                    debug_logger.log_info("element_cloner", "extract_complete",
+                                          f"Deep serialized value sample: {str(deep_val)[:300]}")
+
                     if isinstance(deep_val, list) and len(deep_val) > 0:
                         try:
                             extracted_data = {}
@@ -304,9 +306,11 @@ class ComprehensiveElementCloner:
                                 if isinstance(item, list) and len(item) == 2:
                                     key, val = item
                                     extracted_data[key] = val
-                            debug_logger.log_info("element_cloner", "extract_complete", f"Converted deep serialized to dict with {len(extracted_data)} keys")
+                            debug_logger.log_info("element_cloner", "extract_complete",
+                                                  f"Converted deep serialized to dict with {len(extracted_data)} keys")
                         except Exception as e:
-                            debug_logger.log_error("element_cloner", "extract_complete", f"Failed to convert deep serialized value: {e}")
+                            debug_logger.log_error("element_cloner", "extract_complete",
+                                                   f"Failed to convert deep serialized value: {e}")
                             extracted_data = {"error": f"Failed to convert deep serialized value: {e}"}
                     else:
                         extracted_data = deep_val
@@ -316,11 +320,12 @@ class ComprehensiveElementCloner:
             else:
                 debug_logger.log_error("element_cloner", "extract_complete", f"Unexpected result type: {type(result)}")
                 return {"error": f"Unexpected result type: {type(result)}", "result": str(result)[:200]}
-            
+
             if not isinstance(extracted_data, dict):
-                debug_logger.log_error("element_cloner", "extract_complete", f"Extracted data is not dict: {type(extracted_data)}")
+                debug_logger.log_error("element_cloner", "extract_complete",
+                                       f"Extracted data is not dict: {type(extracted_data)}")
                 return {"error": f"Extracted data is not dict: {type(extracted_data)}"}
-            
+
             final_result = {
                 **extracted_data,
                 "url": tab.url,
@@ -328,10 +333,11 @@ class ComprehensiveElementCloner:
                 "timestamp": "now",
                 "includesChildren": include_children
             }
-            
-            debug_logger.log_info("element_cloner", "extract_complete", "Comprehensive extraction completed successfully")
+
+            debug_logger.log_info("element_cloner", "extract_complete",
+                                  "Comprehensive extraction completed successfully")
             return final_result
-            
+
         except Exception as e:
             debug_logger.log_error("element_cloner", "extract_complete", f"Error during extraction: {str(e)}")
             return {
@@ -340,5 +346,6 @@ class ComprehensiveElementCloner:
                 "url": getattr(tab, 'url', 'unknown'),
                 "timestamp": "now"
             }
+
 
 comprehensive_element_cloner = ComprehensiveElementCloner()

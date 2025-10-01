@@ -15,13 +15,12 @@ This provides 100% accurate element cloning by using CDP's native capabilities
 instead of limited JavaScript-based extraction.
 """
 
-import asyncio
-import json
 from datetime import datetime
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 import nodriver as uc
-from debug_logger import debug_logger
+
+from stealth_browser_mcp.debug_logger import debug_logger
 
 
 class CDPElementCloner:
@@ -31,10 +30,10 @@ class CDPElementCloner:
         """Initialize the CDP element cloner."""
 
     async def extract_complete_element_cdp(
-        self,
-        tab,
-        selector: str,
-        include_children: bool = True
+            self,
+            tab,
+            selector: str,
+            include_children: bool = True
     ) -> Dict[str, Any]:
         """
         Extract complete element data using proper CDP methods.
@@ -114,7 +113,7 @@ class CDPElementCloner:
                 "nodeValue": node_details.node_value,
                 "outerHTML": outer_html,
                 "attributes": [
-                    {"name": node_details.attributes[i], "value": node_details.attributes[i+1]}
+                    {"name": node_details.attributes[i], "value": node_details.attributes[i + 1]}
                     for i in range(0, len(node_details.attributes or []), 2)
                 ] if node_details.attributes else []
             }
@@ -165,7 +164,7 @@ class CDPElementCloner:
                 "pseudoElements": [self._pseudo_element_to_dict(pe) for pe in (pseudo_elements or [])],
                 "inherited": [self._inherited_style_to_dict(inh) for inh in (inherited or [])]
             }
-            debug_logger.log_info("cdp_cloner", "_get_matched_styles", 
+            debug_logger.log_info("cdp_cloner", "_get_matched_styles",
                                   f"Got {len(result['matchedCSSRules'])} CSS rules")
             return result
         except Exception as e:
@@ -204,7 +203,7 @@ class CDPElementCloner:
                     "hasOriginalHandler": listener.original_handler is not None,
                     "backendNodeId": int(listener.backend_node_id) if listener.backend_node_id else None
                 })
-            debug_logger.log_info("cdp_cloner", "_get_event_listeners", 
+            debug_logger.log_info("cdp_cloner", "_get_event_listeners",
                                   f"Got {len(result)} event listeners")
             return result
         except Exception as e:
@@ -316,6 +315,7 @@ class CDPElementCloner:
             Dict[str, Any]: Dictionary describing inherited styles.
         """
         return {
-            "inlineStyle": self._css_style_to_dict(inherited_style.inline_style) if inherited_style.inline_style else None,
+            "inlineStyle": self._css_style_to_dict(
+                inherited_style.inline_style) if inherited_style.inline_style else None,
             "matchedCSSRules": [self._rule_match_to_dict(rule) for rule in inherited_style.matched_css_rules]
         }

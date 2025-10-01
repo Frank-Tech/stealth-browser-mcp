@@ -1,16 +1,15 @@
 """Response handler for managing large responses and automatic file-based fallbacks."""
 
 import json
-import os
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 
 class ResponseHandler:
     """Handle large responses by automatically falling back to file-based storage."""
-    
+
     def __init__(self, max_tokens: int = 20000, clone_dir: str = None):
         """
         Initialize the response handler.
@@ -25,7 +24,7 @@ class ResponseHandler:
         else:
             self.clone_dir = Path(clone_dir)
         self.clone_dir.mkdir(exist_ok=True)
-    
+
     def estimate_tokens(self, data: Any) -> int:
         """
         Estimate token count for data (rough approximation).
@@ -44,12 +43,12 @@ class ResponseHandler:
             return len(data) // 4
         else:
             return len(str(data)) // 4
-    
+
     def handle_response(
-        self, 
-        data: Any, 
-        fallback_filename_prefix: str = "large_response",
-        metadata: Dict[str, Any] = None
+            self,
+            data: Any,
+            fallback_filename_prefix: str = "large_response",
+            metadata: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """
         Handle response data, automatically falling back to file storage if too large.
@@ -63,17 +62,17 @@ class ResponseHandler:
             Either the original data or file storage info if data was too large
         """
         estimated_tokens = self.estimate_tokens(data)
-        
+
         if estimated_tokens <= self.max_tokens:
             # Data is small enough, return as-is
             return data
-        
+
         # Data is too large, save to file
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         unique_id = str(uuid.uuid4())[:8]
         filename = f"{fallback_filename_prefix}_{timestamp}_{unique_id}.json"
         file_path = self.clone_dir / filename
-        
+
         # Prepare file content with metadata
         file_content = {
             "metadata": {
@@ -84,14 +83,14 @@ class ResponseHandler:
             },
             "data": data
         }
-        
+
         # Save to file
         with open(file_path, 'w', encoding='utf-8') as f:
             json.dump(file_content, f, indent=2, ensure_ascii=False)
-        
+
         # Return file info instead of data
         file_size_kb = file_path.stat().st_size / 1024
-        
+
         return {
             "file_path": str(file_path),
             "filename": filename,

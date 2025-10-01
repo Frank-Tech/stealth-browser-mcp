@@ -4,10 +4,10 @@ import asyncio
 import time
 from typing import List, Optional, Dict, Any
 
-from nodriver import Tab, Element
-from models import ElementInfo, ElementAction
-from debug_logger import debug_logger
+from nodriver import Tab
 
+from stealth_browser_mcp.debug_logger import debug_logger
+from stealth_browser_mcp.models import ElementInfo
 
 
 class DOMHandler:
@@ -15,11 +15,11 @@ class DOMHandler:
 
     @staticmethod
     async def query_elements(
-        tab: Tab,
-        selector: str,
-        text_filter: Optional[str] = None,
-        visible_only: bool = True,
-        limit: Optional[Any] = None
+            tab: Tab,
+            selector: str,
+            text_filter: Optional[str] = None,
+            visible_only: bool = True,
+            limit: Optional[Any] = None
     ) -> List[ElementInfo]:
         """
         Query elements with advanced filtering.
@@ -45,44 +45,44 @@ class DOMHandler:
                     processed_limit = None
                 else:
                     debug_logger.log_warning('DOMHandler', 'query_elements',
-                                            f'Invalid limit parameter: {limit} (type: {type(limit)})')
+                                             f'Invalid limit parameter: {limit} (type: {type(limit)})')
                     processed_limit = None
             except (ValueError, TypeError) as e:
                 debug_logger.log_error('DOMHandler', 'query_elements', e,
-                                      {'limit_value': limit, 'limit_type': type(limit)})
+                                       {'limit_value': limit, 'limit_type': type(limit)})
                 processed_limit = None
 
         debug_logger.log_info('DOMHandler', 'query_elements',
-                             f'Starting query with selector: {selector}',
-                             {'text_filter': text_filter, 'visible_only': visible_only,
-                              'limit': limit, 'processed_limit': processed_limit})
+                              f'Starting query with selector: {selector}',
+                              {'text_filter': text_filter, 'visible_only': visible_only,
+                               'limit': limit, 'processed_limit': processed_limit})
         try:
             if selector.startswith('//'):
                 elements = await tab.select_all(f'xpath={selector}')
                 debug_logger.log_info('DOMHandler', 'query_elements',
-                                     f'XPath query returned {len(elements)} elements')
+                                      f'XPath query returned {len(elements)} elements')
             else:
                 elements = await tab.select_all(selector)
                 debug_logger.log_info('DOMHandler', 'query_elements',
-                                     f'CSS query returned {len(elements)} elements')
+                                      f'CSS query returned {len(elements)} elements')
 
             results = []
             for idx, elem in enumerate(elements):
                 try:
                     debug_logger.log_info('DOMHandler', 'query_elements',
-                                         f'Processing element {idx+1}/{len(elements)}')
+                                          f'Processing element {idx + 1}/{len(elements)}')
 
                     if hasattr(elem, 'update'):
                         await elem.update()
                         debug_logger.log_info('DOMHandler', 'query_elements',
-                                             f'Element {idx+1} updated')
+                                              f'Element {idx + 1} updated')
 
                     tag_name = elem.tag_name if hasattr(elem, 'tag_name') else 'unknown'
                     text_content = elem.text_all if hasattr(elem, 'text_all') else ''
                     attrs = elem.attrs if hasattr(elem, 'attrs') else {}
 
                     debug_logger.log_info('DOMHandler', 'query_elements',
-                                         f'Element {idx+1}: tag={tag_name}, text_len={len(text_content)}, attrs={len(attrs)}')
+                                          f'Element {idx + 1}: tag={tag_name}, text_len={len(text_content)}, attrs={len(attrs)}')
 
                     if text_filter and text_filter.lower() not in text_content.lower():
                         continue
@@ -114,10 +114,10 @@ class DOMHandler:
                                 'height': position.height
                             }
                             debug_logger.log_info('DOMHandler', 'query_elements',
-                                                 f'Element {idx+1} position: {bbox}')
+                                                  f'Element {idx + 1} position: {bbox}')
                     except Exception as pos_error:
                         debug_logger.log_warning('DOMHandler', 'query_elements',
-                                                f'Could not get position for element {idx+1}: {pos_error}')
+                                                 f'Could not get position for element {idx + 1}: {pos_error}')
 
                     is_clickable = False
 
@@ -144,30 +144,30 @@ class DOMHandler:
 
                     if processed_limit and len(results) >= processed_limit:
                         debug_logger.log_info('DOMHandler', 'query_elements',
-                                             f'Reached limit of {processed_limit} results')
+                                              f'Reached limit of {processed_limit} results')
                         break
 
                 except Exception as elem_error:
                     debug_logger.log_error('DOMHandler', 'query_elements',
-                                          elem_error,
-                                          {'element_index': idx, 'selector': selector})
+                                           elem_error,
+                                           {'element_index': idx, 'selector': selector})
                     continue
 
             debug_logger.log_info('DOMHandler', 'query_elements',
-                                 f'Returning {len(results)} results')
+                                  f'Returning {len(results)} results')
             return results
 
         except Exception as e:
             debug_logger.log_error('DOMHandler', 'query_elements', e,
-                                  {'selector': selector, 'tab': str(tab)})
+                                   {'selector': selector, 'tab': str(tab)})
             return []
 
     @staticmethod
     async def click_element(
-        tab: Tab,
-        selector: str,
-        text_match: Optional[str] = None,
-        timeout: int = 10000
+            tab: Tab,
+            selector: str,
+            text_match: Optional[str] = None,
+            timeout: int = 10000
     ) -> bool:
         """
         Click an element with smart retry logic.
@@ -187,7 +187,7 @@ class DOMHandler:
             if text_match:
                 element = await tab.find(text_match, best_match=True)
             else:
-                element = await tab.select(selector, timeout=timeout/1000)
+                element = await tab.select(selector, timeout=timeout / 1000)
 
             if not element:
                 raise Exception(f"Element not found: {selector}")
@@ -207,13 +207,13 @@ class DOMHandler:
 
     @staticmethod
     async def type_text(
-        tab: Tab,
-        selector: str,
-        text: str,
-        clear_first: bool = True,
-        delay_ms: int = 50,
-        parse_newlines: bool = False,
-        shift_enter: bool = False
+            tab: Tab,
+            selector: str,
+            text: str,
+            clear_first: bool = True,
+            delay_ms: int = 50,
+            parse_newlines: bool = False,
+            shift_enter: bool = False
     ) -> bool:
         """
         Type text with human-like delays and optional newline parsing.
@@ -253,7 +253,7 @@ class DOMHandler:
                     for char in line:
                         await element.send_keys(char)
                         await asyncio.sleep(delay_ms / 1000)
-                    
+
                     if i < len(lines) - 1:
                         if shift_enter:
                             await element.apply('''(elem) => {
@@ -299,10 +299,10 @@ class DOMHandler:
 
     @staticmethod
     async def paste_text(
-        tab: Tab,
-        selector: str,
-        text: str,
-        clear_first: bool = True
+            tab: Tab,
+            selector: str,
+            text: str,
+            clear_first: bool = True
     ) -> bool:
         """
         Paste text instantly using nodriver's insert_text method.
@@ -318,7 +318,7 @@ class DOMHandler:
             bool: True if pasting succeeded, False otherwise.
         """
         from nodriver import cdp
-        
+
         try:
             element = await tab.select(selector)
             if not element:
@@ -332,14 +332,14 @@ class DOMHandler:
                     await element.apply("(elem) => { elem.value = ''; }")
                 except:
                     await tab.send(cdp.input_.dispatch_key_event(
-                        "rawKeyDown", 
+                        "rawKeyDown",
                         modifiers=2,  # Ctrl
                         key="a",
                         code="KeyA",
                         windows_virtual_key_code=65
                     ))
                     await tab.send(cdp.input_.dispatch_key_event(
-                        "keyUp", 
+                        "keyUp",
                         modifiers=2,  # Ctrl
                         key="a",
                         code="KeyA",
@@ -353,7 +353,7 @@ class DOMHandler:
                     ))
                     await tab.send(cdp.input_.dispatch_key_event(
                         "keyUp",
-                        key="Delete", 
+                        key="Delete",
                         code="Delete",
                         windows_virtual_key_code=46
                     ))
@@ -368,11 +368,11 @@ class DOMHandler:
 
     @staticmethod
     async def select_option(
-        tab: Tab,
-        selector: str,
-        value: Optional[str] = None,
-        text: Optional[str] = None,
-        index: Optional[int] = None
+            tab: Tab,
+            selector: str,
+            value: Optional[str] = None,
+            text: Optional[str] = None,
+            index: Optional[int] = None
     ) -> bool:
         """
         Select option from dropdown using nodriver's native methods.
@@ -423,8 +423,8 @@ class DOMHandler:
 
     @staticmethod
     async def get_element_state(
-        tab: Tab,
-        selector: str
+            tab: Tab,
+            selector: str
     ) -> Dict[str, Any]:
         """
         Get complete state of an element.
@@ -470,11 +470,11 @@ class DOMHandler:
 
     @staticmethod
     async def wait_for_element(
-        tab: Tab,
-        selector: str,
-        timeout: int = 30000,
-        visible: bool = True,
-        text_content: Optional[str] = None
+            tab: Tab,
+            selector: str,
+            timeout: int = 30000,
+            visible: bool = True,
+            text_content: Optional[str] = None
     ) -> bool:
         """
         Wait for element to appear and match conditions.
@@ -530,9 +530,9 @@ class DOMHandler:
 
     @staticmethod
     async def execute_script(
-        tab: Tab,
-        script: str,
-        args: Optional[List[Any]] = None
+            tab: Tab,
+            script: str,
+            args: Optional[List[Any]] = None
     ) -> Any:
         """
         Execute JavaScript in page context.
@@ -558,8 +558,8 @@ class DOMHandler:
 
     @staticmethod
     async def get_page_content(
-        tab: Tab,
-        include_frames: bool = False
+            tab: Tab,
+            include_frames: bool = False
     ) -> Dict[str, str]:
         """
         Get page HTML and text content.
@@ -608,10 +608,10 @@ class DOMHandler:
 
     @staticmethod
     async def scroll_page(
-        tab: Tab,
-        direction: str = "down",
-        amount: int = 500,
-        smooth: bool = True
+            tab: Tab,
+            direction: str = "down",
+            amount: int = 500,
+            smooth: bool = True
     ) -> bool:
         """
         Scroll the page in specified direction.

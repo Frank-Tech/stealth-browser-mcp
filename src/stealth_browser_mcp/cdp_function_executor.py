@@ -10,15 +10,12 @@ This module provides comprehensive function execution capabilities using nodrive
 
 import asyncio
 import json
-import uuid
-import inspect
-from typing import Dict, List, Any, Optional, Callable, Union
-from datetime import datetime
+from typing import Dict, List, Any, Callable
 
 import nodriver as uc
 from nodriver import Tab
 
-from debug_logger import debug_logger
+from stealth_browser_mcp.debug_logger import debug_logger
 
 
 class ExecutionContext:
@@ -136,7 +133,8 @@ class CDPFunctionExecutor:
             if not cdp_method:
                 raise ValueError(f"Unknown CDP command: {command}")
             result = await tab.send(cdp_method(**params))
-            debug_logger.log_info("cdp_function_executor", "execute_cdp_command", f"Executed {command} with params: {params}")
+            debug_logger.log_info("cdp_function_executor", "execute_cdp_command",
+                                  f"Executed {command} with params: {params}")
             return {
                 "success": True,
                 "result": result,
@@ -294,31 +292,33 @@ class CDPFunctionExecutor:
         """
         try:
             await self.enable_runtime(tab)
-            
+
             object_result = await tab.send(uc.cdp.runtime.evaluate(
                 expression=object_path,
                 return_by_value=False
             ))
-            
+
             if not object_result or not object_result[0] or not object_result[0].object_id:
-                debug_logger.log_warning("cdp_function_executor", "discover_object_methods", f"Could not get object reference for {object_path}")
+                debug_logger.log_warning("cdp_function_executor", "discover_object_methods",
+                                         f"Could not get object reference for {object_path}")
                 return []
-                
+
             object_id = object_result[0].object_id
-            
+
             properties_result = await tab.send(uc.cdp.runtime.get_properties(
                 object_id=object_id,
                 own_properties=False,
                 accessor_properties_only=False
             ))
-            
+
             if not properties_result or not properties_result[0]:
-                debug_logger.log_warning("cdp_function_executor", "discover_object_methods", f"No properties returned for {object_path}")
+                debug_logger.log_warning("cdp_function_executor", "discover_object_methods",
+                                         f"No properties returned for {object_path}")
                 return []
-                
+
             properties = properties_result[0]
             methods = []
-            
+
             for prop in properties:
                 try:
                     if prop.value and prop.value.type_ == "function":
@@ -329,10 +329,12 @@ class CDPFunctionExecutor:
                             description=f"Method {prop.name} of {object_path}"
                         ))
                 except Exception as e:
-                    debug_logger.log_warning("cdp_function_executor", "discover_object_methods", f"Error processing property {prop.name}: {e}")
+                    debug_logger.log_warning("cdp_function_executor", "discover_object_methods",
+                                             f"Error processing property {prop.name}: {e}")
                     continue
-                    
-            debug_logger.log_info("cdp_function_executor", "discover_object_methods", f"Found {len(methods)} methods for {object_path}")
+
+            debug_logger.log_info("cdp_function_executor", "discover_object_methods",
+                                  f"Found {len(methods)} methods for {object_path}")
             return methods
         except Exception as e:
             debug_logger.log_error("cdp_function_executor", "discover_object_methods", e)
@@ -527,7 +529,8 @@ class CDPFunctionExecutor:
             debug_logger.log_error("cdp_function_executor", "inject_and_execute_script", e)
             return {"success": False, "error": str(e)}
 
-    async def create_persistent_function(self, tab: Tab, function_name: str, function_code: str, instance_id: str) -> Dict[str, Any]:
+    async def create_persistent_function(self, tab: Tab, function_name: str, function_code: str, instance_id: str) -> \
+            Dict[str, Any]:
         """
         Creates a persistent JavaScript function that survives page reloads.
 
@@ -590,7 +593,8 @@ class CDPFunctionExecutor:
         results = []
         for i, func_call in enumerate(function_calls):
             try:
-                debug_logger.log_info("cdp_function_executor", "execute_function_sequence", f"Executing call {i+1}/{len(function_calls)}: {func_call.function_path}")
+                debug_logger.log_info("cdp_function_executor", "execute_function_sequence",
+                                      f"Executing call {i + 1}/{len(function_calls)}: {func_call.function_path}")
                 result = await self.call_discovered_function(
                     tab,
                     func_call.function_path,
@@ -691,7 +695,7 @@ class CDPFunctionExecutor:
         try:
             js_code = self._translate_python_to_js(python_code)
             debug_logger.log_info("cdp_function_executor", "execute_python_in_browser", f"Translated JS: {js_code}")
-            
+
             import asyncio
             result = await asyncio.wait_for(
                 self.inject_and_execute_script(tab, js_code),
@@ -716,29 +720,31 @@ class CDPFunctionExecutor:
         """
         try:
             import py2js
-            
+
             js_code = py2js.convert(python_code)
             debug_logger.log_info("cdp_function_executor", "_translate_python_to_js", f"py2js generated: {js_code}")
-            
+
             lines = python_code.strip().split('\n')
             last_line = lines[-1].strip() if lines else ""
-            
-            if (last_line and 
-                '=' not in last_line and 
-                not last_line.startswith(('def ', 'class ', 'if ', 'for ', 'while ', 'try:', 'with ', 'import ', 'from '))):
-                
+
+            if (last_line and
+                    '=' not in last_line and
+                    not last_line.startswith(
+                        ('def ', 'class ', 'if ', 'for ', 'while ', 'try:', 'with ', 'import ', 'from '))):
+
                 wrapped_code = f"(() => {{ {js_code}; return {last_line}; }})()"
                 return wrapped_code
             else:
                 return f"(() => {{ {js_code}; }})()"
-                
+
         except ImportError:
-            debug_logger.log_warning("cdp_function_executor", "_translate_python_to_js", "py2js not available, using fallback")
+            debug_logger.log_warning("cdp_function_executor", "_translate_python_to_js",
+                                     "py2js not available, using fallback")
             return self._fallback_python_to_js(python_code)
         except Exception as e:
             debug_logger.log_error("cdp_function_executor", "_translate_python_to_js", e, {"python_code": python_code})
             return self._fallback_python_to_js(python_code)
-    
+
     def _fallback_python_to_js(self, python_code: str) -> str:
         """
         Fallback Python to JavaScript translation for basic cases.
@@ -750,38 +756,38 @@ class CDPFunctionExecutor:
             str: Basic translated JavaScript code.
         """
         import re
-        
+
         lines = python_code.strip().split('\n')
         js_lines = []
-        
+
         for line in lines:
             js_line = line
-            
+
             replacements = {
                 "True": "true",
-                "False": "false", 
+                "False": "false",
                 "None": "null",
                 "print(": "console.log(",
                 ".append(": ".push(",
             }
-            
+
             for py_syntax, js_syntax in replacements.items():
                 js_line = js_line.replace(py_syntax, js_syntax)
-            
+
             if '=' in js_line and not js_line.strip().startswith('//'):
                 if re.match(r'^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*=', js_line):
                     js_line = re.sub(r'^(\s*)([a-zA-Z_][a-zA-Z0-9_]*\s*=)', r'\1let \2', js_line)
-            
+
             js_lines.append(js_line)
-        
+
         js_code = ";\n".join(js_lines) + ";"
-        
+
         last_line = lines[-1].strip() if lines else ""
         if last_line and '=' not in last_line and not last_line.endswith(':'):
             js_code = js_code.rsplit(';', 2)[0] + f"; return {last_line};"
-        
+
         wrapped_code = f"(function() {{ {js_code} }})()"
-        
+
         return wrapped_code
 
     async def call_python_from_js(self, binding_name: str, args: List[Any]) -> Dict[str, Any]:
@@ -830,7 +836,8 @@ class CDPFunctionExecutor:
         """
         return {
             "python_bindings": list(self._python_bindings.keys()),
-            "persistent_functions": self._persistent_functions.get(instance_id, {}) if instance_id else self._persistent_functions,
+            "persistent_functions": self._persistent_functions.get(instance_id,
+                                                                   {}) if instance_id else self._persistent_functions,
             "available_commands": await self.list_cdp_commands(),
             "executor_version": "1.0.0",
             "capabilities": [
